@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Extractor</title>
+    <style>
+
+         @keyframes animateBackground {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+
+        body {
+        font-family: 'Arial', sans-serif;
+        height: 100vh;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: linear-gradient(45deg, #E6E6FA, #D8BFD8, #DDA0DD, #9370DB, #CCCCFF);
+        background-size: 300% 300%;
+        animation: animateBackground 60s infinite;
+    }
+
+        #container {
+            background: white;
+            padding: 100px 300px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            cursor: pointer;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        label {
+            margin-left: 5px;
+            color: blue;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container">
+        <!-- Wrap the content inside a form that posts to the /upload endpoint -->
+        <form action="/upload" method="post" enctype="multipart/form-data">
+            <div id="dragDropZone">
+                Drag & Drop or
+                <input type="file" id="fileInput" name="file"> <!-- Add name attribute to the file input -->
+                <label for="fileInput">Browse</label>
+            </div>
+        </form>
+        <div id="thankYouMessage" style="display:none;">
+            Thank you!
+        </div>
+    </div>
+
+    <script>
+        const container = document.getElementById('container');
+        const fileInput = document.getElementById('fileInput');
+        const thankYouMessage = document.getElementById('thankYouMessage');
+        const dragDropZone = document.getElementById('dragDropZone');
+
+        function handleFile() {
+            const file = fileInput.files[0];
+            if (file) {
+                // Submit the form to the server
+                fileInput.closest('form').submit();
+            }
+        }
+
+        ['dragover', 'drop'].forEach(eventName => {
+            container.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, false);
+        });
+
+        container.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileInput.files = e.dataTransfer.files;
+            handleFile();
+        });
+
+        fileInput.addEventListener('change', handleFile);
+
+    </script>
+</body>
+
+</html>
