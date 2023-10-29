@@ -6,6 +6,8 @@ from flask import render_template, Flask, request, jsonify, send_from_directory
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 
+
+
 def clean_number(value):
     # Convert commas to dots
     value = value.replace(',', '.')
@@ -20,8 +22,8 @@ def clean_number(value):
     else:
         # Remove leading zeros and return for integer values
         return str(int(cleaned))
-def extract_pickup_address(pdf_path):
-    text = extract_text(pdf_path)
+def extract_pickup_address(translated_text):
+    text = translated_text
 
     # List of potential labels for the pick-up address
     labels = ["Pick-up\s+address:", "Collect\s+From:", "Departure\s+:"]
@@ -36,7 +38,7 @@ def extract_pickup_address(pdf_path):
             return pick_up_address
 
     return "Pick-up address not found!"
-def extract_delivery_address(pdf_path):
+def extract_delivery_address(translated_text):
     """
     Extracts the delivery address from the given PDF file.
 
@@ -45,8 +47,9 @@ def extract_delivery_address(pdf_path):
 
     Returns:
         str: Extracted delivery address or a message if not found.
+        :param translated_text:
     """
-    text = extract_text(pdf_path)
+    text = translated_text
 
     # List of potential labels for the delivery address
     labels = ["Delivery\s+address:", "Deliver\s+To:", "Recipient:"]
@@ -62,8 +65,8 @@ def extract_delivery_address(pdf_path):
             return delivery_address
 
     return "Delivery address not found!"
-def extract_shipper_from_pdf(pdf_path):
-    text = extract_text(pdf_path)
+def extract_shipper_from_pdf(translated_text):
+    text = translated_text
     # Pattern to extract the shipper details based on "Versender:" label
     pattern_versender = r"(Versender\s?:\s?)([^\n]+)"
     match = re.search(pattern_versender, text)
@@ -88,8 +91,8 @@ def extract_shipper_from_pdf(pdf_path):
         return match_shipper.group(1).strip()
 
     return "Shipper details not found!"
-def extract_weight_from_pdf(pdf_path):
-    text = extract_text(pdf_path)
+def extract_weight_from_pdf(translated_text):
+    text = translated_text
 
     # Pattern to extract weight details
     weight_pattern = r'(\d+[,.\d]*)\s*(kgs?|KGS?)'
@@ -101,8 +104,8 @@ def extract_weight_from_pdf(pdf_path):
         return weight_details
 
     return "Weight details not found!"
-def extract_volume_from_pdf(pdf_path):
-    text = extract_text(pdf_path)
+def extract_volume_from_pdf(translated_text):
+    text = translated_text
 
     # Pattern to extract volume details directly
     volume_pattern = r'(\d+[,.\d]*)\s*CBM'
@@ -135,8 +138,8 @@ def extract_volume_from_pdf(pdf_path):
         return volume_cbm
 
     return "Volume details not found!"
-def extract_quantity_from_pdf(pdf_path):
-    text = extract_text(pdf_path)
+def extract_quantity_from_pdf(translated_text):
+    text = translated_text
 
     # Patterns to check for
     patterns = [
@@ -151,8 +154,8 @@ def extract_quantity_from_pdf(pdf_path):
             return clean_number(match.group(1))
 
     return "Quantity details not found!"
-def extract_remarks_from_pdf(pdf_path):
-    text = extract_text(pdf_path)
+def extract_remarks_from_pdf(translated_text):
+    text = translated_text
     # Pattern to check for
     pattern = r'Remarks:\s*(.*?)(\n{2,}|$)'
 
@@ -161,8 +164,8 @@ def extract_remarks_from_pdf(pdf_path):
         return match.group(1).strip()
 
     return "Remarks details not found!"
-def extract_instructions_from_pdf(pdf_path):
-    text = extract_text(pdf_path)
+def extract_instructions_from_pdf(translated_text):
+    text = translated_text
     # Pattern to check for
     patterns = [
         r'Instructions:\s*(.*?)(\n{2,}|$)',
@@ -175,8 +178,8 @@ def extract_instructions_from_pdf(pdf_path):
             return match.group(1).strip()
 
     return "Instructions details not found!"
-def extract_description_of_goods_from_pdf(pdf_path):
-    text = extract_text(pdf_path)
+def extract_description_of_goods_from_pdf(translated_text):
+    text = translated_text
 
     patterns = [
         r"(?:Description\s*of\s*goods:)([^:]+?)(?:\n|$)",
@@ -193,8 +196,8 @@ def extract_description_of_goods_from_pdf(pdf_path):
             if cleaned:
                 return cleaned
     return "Description of goods details not found!"
-def extract_dimensions_from_pdf(pdf_path):
-    text = extract_text(pdf_path)
+def extract_dimensions_from_pdf(translated_text):
+    text = translated_text
 
     # Pattern to match dimensions
     pattern = r"(\d+(\.\d+)?[xX]\d+(\.\d+)?[xX]\d+(\.\d+)?)(?:cm|CM|m|M)?"
@@ -202,9 +205,9 @@ def extract_dimensions_from_pdf(pdf_path):
     if match:
         return match.group(1)
     return "Dimensions details not found!"
-def extract_mawb_from_pdf(pdf_path):
+def extract_mawb_from_pdf(translated_text):
 
-    text = extract_text(pdf_path)
+    text = translated_text
 
     pattern = r"MAWB[^\n\d]*([\d\s\-]+)?"
     matches = re.findall(pattern, text)
@@ -213,8 +216,8 @@ def extract_mawb_from_pdf(pdf_path):
         if match and match.strip():  # check if match is not just whitespace
             return match.strip()
     return "MAWB details not found!"
-def extract_hawb_from_pdf(pdf_path):
-    text = extract_text(pdf_path)
+def extract_hawb_from_pdf(translated_text):
+    text = translated_text
 
     pattern = r"HAWB[^\n\d]*([\d\s\-]+)?"
     matches = re.findall(pattern, text)
@@ -247,6 +250,11 @@ def extract_hawb_from_pdf(pdf_path):
 
     return "HAWB details not found!"
 def extract_data_from_pdf(pdf_path):
+
+    text = extract_text(pdf_path)
+    from deep_translator import GoogleTranslator
+    translated_text = GoogleTranslator(source='auto', target='en').translate(text)
+
     """
     Extract all relevant details from the PDF.
 
@@ -257,18 +265,18 @@ def extract_data_from_pdf(pdf_path):
         dict: Dictionary containing all extracted details.
     """
     data = {}
-    data['pickup_address'] = extract_pickup_address(pdf_path)
-    data['delivery_address'] = extract_delivery_address(pdf_path)
-    data['shipper'] = extract_shipper_from_pdf(pdf_path)
-    data['weight'] = extract_weight_from_pdf(pdf_path)
-    data['volume'] = extract_volume_from_pdf(pdf_path)
-    data['quantity'] = extract_quantity_from_pdf(pdf_path)
-    data['remarks'] = extract_remarks_from_pdf(pdf_path)
-    data['instructions'] = extract_instructions_from_pdf(pdf_path)
-    data['description_of_goods'] = extract_description_of_goods_from_pdf(pdf_path)
-    data['dimensions'] = extract_dimensions_from_pdf(pdf_path)
-    data['mawb'] = extract_mawb_from_pdf(pdf_path)
-    data['hawb'] = extract_hawb_from_pdf(pdf_path)
+    data['pickup_address'] = extract_pickup_address(translated_text)
+    data['delivery_address'] = extract_delivery_address(translated_text)
+    data['shipper'] = extract_shipper_from_pdf(translated_text)
+    data['weight'] = extract_weight_from_pdf(translated_text)
+    data['volume'] = extract_volume_from_pdf(translated_text)
+    data['quantity'] = extract_quantity_from_pdf(translated_text)
+    data['remarks'] = extract_remarks_from_pdf(translated_text)
+    data['instructions'] = extract_instructions_from_pdf(translated_text)
+    data['description_of_goods'] = extract_description_of_goods_from_pdf(translated_text)
+    data['dimensions'] = extract_dimensions_from_pdf(translated_text)
+    data['mawb'] = extract_mawb_from_pdf(translated_text)
+    data['hawb'] = extract_hawb_from_pdf(translated_text)
 
     return data
 def save_data_as_json(data, json_file):

@@ -6,29 +6,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>File Extractor</title>
     <style>
-        @keyframes animateBackground {
-            0% {
-                background-position: 0% 50%;
-            }
-            50% {
-                background-position: 100% 50%;
-            }
-            100% {
-                background-position: 0% 50%;
-            }
-        }
+
+         @keyframes animateBackground {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
 
         body {
-            font-family: 'Arial', sans-serif;
-            height: 100vh;
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: linear-gradient(45deg, #E6E6FA, #D8BFD8, #DDA0DD, #9370DB, #CCCCFF);
-            background-size: 300% 300%;
-            animation: animateBackground 60s infinite;
-        }
+        font-family: 'Arial', sans-serif;
+        height: 100vh;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: linear-gradient(45deg, #E6E6FA, #D8BFD8, #DDA0DD, #9370DB, #CCCCFF);
+        background-size: 300% 300%;
+        animation: animateBackground 60s infinite;
+    }
 
         #container {
             background: white;
@@ -37,7 +39,6 @@
             box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.1);
             text-align: center;
             cursor: pointer;
-            position: relative; /* Added this to position loader inside container */
         }
 
         #fileInput {
@@ -50,119 +51,53 @@
             cursor: pointer;
             text-decoration: underline;
         }
-
-        /* Loader styles */
-        #loader {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            display: none;
-            width: 100%;
-            text-align: center;
-        }
-
-        #statusBar {
-            background-color: #e0e0e0;
-            height: 20px;
-            width: 100%;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-
-        #progress {
-            background-color: green;
-            height: 100%;
-            width: 0;
-        }
-
-        #percentage {
-            margin-top: 10px;
-        }
     </style>
 </head>
 
 <body>
     <div id="container">
+        <!-- Wrap the content inside a form that posts to the /upload endpoint -->
         <form action="/upload" method="post" enctype="multipart/form-data">
             <div id="dragDropZone">
                 Drag & Drop or
-                <input type="file" id="fileInput" name="file">
+                <input type="file" id="fileInput" name="file"> <!-- Add name attribute to the file input -->
                 <label for="fileInput">Browse</label>
             </div>
         </form>
         <div id="thankYouMessage" style="display:none;">
             Thank you!
         </div>
-        <!-- Added loader inside the container -->
-        <div id="loader">
-            <div id="statusBar">
-                <div id="progress"></div>
-            </div>
-            <div id="percentage">0%</div>
-        </div>
     </div>
 
-     <script>
+    <script>
         const container = document.getElementById('container');
         const fileInput = document.getElementById('fileInput');
-        const loader = document.getElementById('loader');
-        const progress = document.getElementById('progress');
-        const percentageElem = document.getElementById('percentage');
+        const thankYouMessage = document.getElementById('thankYouMessage');
+        const dragDropZone = document.getElementById('dragDropZone');
 
         function handleFile() {
             const file = fileInput.files[0];
             if (file) {
-                // Start the loader
-                loader.style.display = 'block';
-
-                // Simulate a file download using Fetch API
-                fetch('uploads') // Adjust the path accordingly
-                .then(response => {
-                    const totalLength = +response.headers.get('Content-Length');
-                    let loaded = 0;
-
-                    // Create a new reader to track progress
-                    const reader = response.body.getReader();
-
-                    return new ReadableStream({
-                        start(controller) {
-                            function push() {
-                                reader.read().then(({ done, value }) => {
-                                    if (done) {
-                                        controller.close();
-                                        return;
-                                    }
-
-                                    loaded += value.length;
-                                    const percentage = Math.round((loaded / totalLength) * 100);
-                                    progress.style.width = percentage + '%';
-                                    percentageElem.textContent = percentage + '%';
-
-                                    controller.enqueue(value);
-                                    push();
-                                });
-                            }
-
-                            push();
-                        }
-                    });
-                })
-                .then(stream => new Response(stream))
-                .then(response => response.blob())
-                .then(blob => {
-                    // Once the file is fully downloaded, create a link and trigger the download
-                    const link = document.createElement('a');
-                    link.href = URL.createObjectURL(blob);
-                    link.download = 'file.json'; // Adjust the file name accordingly
-                    link.click();
-                });
+                // Submit the form to the server
+                fileInput.closest('form').submit();
             }
         }
 
-        /* ... [same drag-drop code as before] ... */
+        ['dragover', 'drop'].forEach(eventName => {
+            container.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, false);
+        });
+
+        container.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileInput.files = e.dataTransfer.files;
+            handleFile();
+        });
 
         fileInput.addEventListener('change', handleFile);
+
     </script>
 </body>
 
